@@ -1,0 +1,73 @@
+name: Upload to DNAnexus
+
+agent_requirements:
+  cpu_cores: 1
+  memory_gb: 1
+
+parameters:
+  - name: input_directory
+    label: Input Directory
+    type: directory
+    optional: true
+    help: Either the directory or the file to upload to DNAnexus must be specified.
+
+  - name: input_file
+    label: Input File
+    type: file
+    optional: true
+
+  - name: dnanexus_project
+    label: DNAnexus Project
+    help: The project to upload to. If not specified, the first project in the workspace will be used.
+    type: string
+    optional: true
+
+  - name: target_path
+    label: Target Path
+    help: The path in the form folder/subfolder/. If not specified, the folder will be uploaded to the root of the project.
+    type: string
+    optional: true
+
+  - name: dnanexus_api_key
+    label: DNAnexus API Key
+    help: The API key to use for the DNAnexus API. If not specified, the API key will be read from the workspace variable DX_API_TOKEN.
+    type: secret
+    optional: true
+
+steps:
+  - name: scriptTask
+    description: Upload a folder to DNAnexus
+    docker:
+      image: registry.goldenhelix.com/public/dxfetch:20250304
+    type: cmd
+    args:
+      - |-
+        set -euo pipefail
+        export HOME=$SCRATCH_DIR
+        
+        # Workspace admins are welcome to set DX_API_TOKEN in the environment
+        if [ -n "${dnanexus_api_key}" ]; then
+          export DX_API_TOKEN="${dnanexus_api_key}"
+        fi
+        
+        export DX_SECURITY_CONTEXT="{\"auth_token_type\": \"bearer\", \"auth_token\": \"$DX_API_TOKEN\"}"
+
+        # If a project is specified, select it, otherwise autoselect the project
+        if [ -n "${dnanexus_project}" ]; then
+          dx select "${dnanexus_project}"
+        else
+          dx select
+        fi
+
+        # Upload the folder
+        if [ -n "${input_directory}" ]; then
+          dx upload -r "${input_directory}" --destination "${target_path}"
+        elif [ -n "${input_file}" ]; then
+          dx upload "${input_file}" --destination "${target_path}"
+        else
+          echo "Either input_directory or input_file must be specified"
+          exit 1
+        fi
+
+
+

@@ -1,0 +1,59 @@
+name: Download from DNAnexus
+
+agent_requirements:
+  cpu_cores: 1
+  memory_gb: 1
+
+parameters:
+  - name: dnanexus_path
+    label: DNAnexus Path
+    type: string
+    help: The path in DNAnexus to download (can be a file or folder)
+
+  - name: output_directory
+    label: Output Directory
+    type: directory
+    help: The local directory where files will be downloaded to
+
+  - name: dnanexus_project
+    label: DNAnexus Project
+    help: The project to download from. If not specified, the first project in the workspace will be used.
+    type: string
+    optional: true
+
+  - name: dnanexus_api_key
+    label: DNAnexus API Key
+    help: The API key to use for the DNAnexus API. If not specified, the API key will be read from the workspace variable DX_API_TOKEN.
+    type: secret
+    optional: true
+
+steps:
+  - name: scriptTask
+    description: Download files from DNAnexus
+    docker:
+      image: registry.goldenhelix.com/public/dxfetch:20250304
+    type: cmd
+    args:
+      - |-
+        set -euo pipefail
+        export HOME=$SCRATCH_DIR
+        
+        # Workspace admins are welcome to set DX_API_TOKEN in the environment
+        if [ -n "${dnanexus_api_key}" ]; then
+          export DX_API_TOKEN="${dnanexus_api_key}"
+        fi
+        
+        export DX_SECURITY_CONTEXT="{\"auth_token_type\": \"bearer\", \"auth_token\": \"$DX_API_TOKEN\"}"
+
+        # If a project is specified, select it, otherwise autoselect the project
+        if [ -n "${dnanexus_project}" ]; then
+          dx select "${dnanexus_project}"
+        else
+          dx select
+        fi
+
+        # Download the files/folders
+        dx download -r "${dnanexus_path}" -o "${output_directory}" --unicode --lightweight  -f
+
+
+
