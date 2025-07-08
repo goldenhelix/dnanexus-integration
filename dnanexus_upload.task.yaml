@@ -8,12 +8,14 @@ parameters:
   - name: input_directory
     label: Input Directory
     type: directory
+    supports_location_mode: 'read_only'
     optional: true
     help: Either the directory or the file to upload to DNAnexus must be specified.
 
   - name: input_file
     label: Input File
     type: file
+    supports_location_mode: 'read_only'
     optional: true
 
   - name: dnanexus_project

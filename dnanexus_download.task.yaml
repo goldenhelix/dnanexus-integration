@@ -13,6 +13,7 @@ parameters:
   - name: output_directory
     label: Output Directory
     type: directory
+    supports_location_mode: 'no_append'
     help: The local directory where files will be downloaded to
 
   - name: dnanexus_project
